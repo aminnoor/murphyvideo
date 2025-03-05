@@ -69,21 +69,25 @@ function extractSignedVideoUrl(xmlResponse) {
 
         try {
             console.log("🔍 Parsed XML Object:", JSON.stringify(result, null, 2)); // Log parsed structure
-            
-            // Navigate to the Video Filename
-            const videoFilename = result["soap:Envelope"]["soap:Body"]["GetInventoryItemsResponse"]["items"]["InventoryItem"]["Videos"]["Video"]["Filename"];
-            
-            if (videoFilename) {
-                videoUrl = `https://d29xpwypni02ry.cloudfront.net/clips_mp4fs/${videoFilename}`;
+
+            // Navigate to the correct path in the parsed XML
+            const videoData = result["soap:Envelope"]["soap:Body"]["GetInventoryItemsResponse"]["items"]["InventoryItem"]["Videos"]["Video"];
+
+            // Check if `<VideoURL>` is present and use it
+            if (videoData.VideoURL) {
+                videoUrl = videoData.VideoURL;  // ✅ Full signed video URL
+            } else {
+                console.error("⚠️ No `<VideoURL>` found in API response.");
             }
         } catch (e) {
-            console.error("❌ Error extracting Video Filename:", e);
+            console.error("❌ Error extracting VideoURL:", e);
         }
     });
 
     console.log("✅ Extracted Video URL:", videoUrl);
     return videoUrl;
 }
+
 
 
 // API endpoint to get the fresh Murphy video
