@@ -68,16 +68,23 @@ function extractSignedVideoUrl(xmlResponse) {
         }
 
         try {
-            console.log("🔍 Parsed XML Object:", JSON.stringify(result, null, 2)); // Log parsed structure
+            console.log("🔍 Parsed XML Object:", JSON.stringify(result, null, 2)); // Log the full structure
 
-            // Navigate to the correct path in the parsed XML
-            const videoData = result["soap:Envelope"]["soap:Body"]["GetInventoryItemsResponse"]["items"]["InventoryItem"]["Videos"]["Video"];
+            // Navigate to InventoryItem safely
+            const inventoryItem = result?.["soap:Envelope"]?.["soap:Body"]?.["GetInventoryItemsResponse"]?.["items"]?.["InventoryItem"];
 
-            // Check if `<VideoURL>` is present and use it
-            if (videoData.VideoURL) {
-                videoUrl = videoData.VideoURL;  // ✅ Full signed video URL
+            if (!inventoryItem) {
+                console.error("❌ No InventoryItem found in response.");
+                return;
+            }
+
+            // Check if `Videos` exists
+            const videoData = inventoryItem?.["Videos"]?.["Video"];
+
+            if (videoData && videoData.VideoURL) {
+                videoUrl = videoData.VideoURL; // ✅ Use full signed VideoURL if available
             } else {
-                console.error("⚠️ No `<VideoURL>` found in API response.");
+                console.warn("⚠️ No `<VideoURL>` found. This product may not have a video.");
             }
         } catch (e) {
             console.error("❌ Error extracting VideoURL:", e);
@@ -87,8 +94,6 @@ function extractSignedVideoUrl(xmlResponse) {
     console.log("✅ Extracted Video URL:", videoUrl);
     return videoUrl;
 }
-
-
 
 // API endpoint to get the fresh Murphy video
 app.get("/get-murphy-video", async (req, res) => {
