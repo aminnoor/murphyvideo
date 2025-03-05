@@ -41,11 +41,11 @@ async function getFreshVideoURL(productId) {
             { headers: { "Content-Type": "text/xml", "SOAPAction": "http://webservices.murphysmagicsupplies.com/GetInventoryItems" } }
         );
 
-        console.log("Murphy API Raw Response:", response.data); // Log full response
+        console.log("🔍 Murphy API Raw XML Response:\n", response.data); // Log full XML
 
-        // Extract the signed video URL from XML response
+        // Try to extract the signed video URL
         const signedVideoUrl = extractSignedVideoUrl(response.data);
-
+        
         if (!signedVideoUrl) {
             console.error("❌ No video URL found in API response.");
         }
