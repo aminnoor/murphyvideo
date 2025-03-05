@@ -1,18 +1,19 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const xml2js = require("xml2js"); // For parsing XML
 
 const app = express();
-app.use(cors()); // Allow requests from Shopify
+app.use(cors()); // Enable CORS for Shopify
 
 const PORT = process.env.PORT || 3000;
 
-// Murphy API Credentials (Should be set in Environment Variables on Render)
+// Murphy API Credentials (set in Render's Environment Variables)
 const MURPHY_USERNAME = process.env.MURPHY_USERNAME;
 const MURPHY_PASSWORD = process.env.MURPHY_PASSWORD;
 const MURPHY_API_URL = "http://ws.murphysmagic.com/V4.asmx";
 
-// Function to fetch fresh video URL
+// Function to fetch a fresh signed video URL
 async function getFreshVideoURL(productId) {
     const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
     <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -40,22 +41,40 @@ async function getFreshVideoURL(productId) {
             { headers: { "Content-Type": "text/xml", "SOAPAction": "http://webservices.murphysmagicsupplies.com/GetInventoryItems" } }
         );
 
-        // Extract video URL from response XML (you may need to parse this properly)
-        return `https://d29xpwypni02ry.cloudfront.net/clips_mp4fs/${productId}-video1.mp4`; // Example URL
+        // Extract the signed video URL from XML response
+        const signedVideoUrl = extractSignedVideoUrl(response.data);
+        return signedVideoUrl || null;
     } catch (error) {
         console.error("Error fetching video URL:", error);
         return null;
     }
 }
 
-// API endpoint to get the fresh video
+// Function to extract the signed video URL from Murphy's API response
+function extractSignedVideoUrl(xmlResponse) {
+    let videoUrl = null;
+    xml2js.parseString(xmlResponse, (err, result) => {
+        if (!err) {
+            try {
+                videoUrl = result["soap:Envelope"]["soap:Body"][0]["GetInventoryItemsResponse"][0]["GetInventoryItemsResult"][0]["InventoryItem"][0]["VideoURL"][0];
+            } catch (e) {
+                console.error("Error parsing video URL:", e);
+            }
+        }
+    });
+    return videoUrl;
+}
+
+// API endpoint to get the fresh Murphy video
 app.get("/get-murphy-video", async (req, res) => {
-    const productId = req.query.product_id;
-    if (!productId) return res.status(400).json({ error: "Missing product ID" });
+    const productId = parseInt(req.query.product_id, 10); // Convert to integer
+    if (isNaN(productId)) return res.status(400).json({ error: "Invalid product ID" });
 
     const videoURL = await getFreshVideoURL(productId);
+    if (!videoURL) return res.status(500).json({ error: "Failed to fetch video URL" });
+
     res.json({ video_url: videoURL });
 });
 
-// Start server
+// Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
