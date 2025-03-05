@@ -1,5 +1,6 @@
 const express = require("express");
 const axios = require("axios");
+const cheerio = require("cheerio"); // For web scraping
 const cors = require("cors");
 const xml2js = require("xml2js"); // For parsing XML
 
@@ -15,44 +16,27 @@ const MURPHY_API_URL = "http://ws.murphysmagic.com/V4.asmx";
 
 // Function to fetch a fresh signed video URL
 async function getFreshVideoURL(productId) {
-    const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
-    <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-                   xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-                   xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-      <soap:Header>
-        <SoapAuthenticationHeader xmlns="http://webservices.murphysmagicsupplies.com/">
-          <Username>${MURPHY_USERNAME}</Username>
-          <Password>${MURPHY_PASSWORD}</Password>
-        </SoapAuthenticationHeader>
-      </soap:Header>
-      <soap:Body>
-        <GetInventoryItems xmlns="http://webservices.murphysmagicsupplies.com/">
-          <itemKeys>
-            <int>${productId}</int>
-          </itemKeys>
-        </GetInventoryItems>
-      </soap:Body>
-    </soap:Envelope>`;
-
     try {
-        const response = await axios.post(
-            MURPHY_API_URL,
-            soapRequest,
-            { headers: { "Content-Type": "text/xml", "SOAPAction": "http://webservices.murphysmagicsupplies.com/GetInventoryItems" } }
-        );
+        const url = `https://www.murphysmagic.com/product.aspx?id=${productId}`;
+        const headers = { "User-Agent": "Mozilla/5.0" };
 
-        console.log("🔍 Murphy API Raw XML Response:\n", response.data); // Log full XML
+        // Fetch the product page HTML
+        const response = await axios.get(url, { headers });
 
-        // Try to extract the signed video URL
-        const signedVideoUrl = extractSignedVideoUrl(response.data);
-        
-        if (!signedVideoUrl) {
-            console.error("❌ No video URL found in API response.");
+        // Load the HTML into Cheerio for parsing
+        const $ = cheerio.load(response.data);
+
+        // Extract the video URL using regex (like in your Python script)
+        const videoMatch = response.data.match(/ProductPageVidify\("([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*"(https:\/\/[^"]+)"/);
+
+        if (videoMatch) {
+            return videoMatch[4]; // Extracted video URL
+        } else {
+            console.warn("⚠️ No video found on the Murphy product page.");
+            return null;
         }
-
-        return signedVideoUrl || null;
     } catch (error) {
-        console.error("❌ Error fetching video URL from Murphy API:", error);
+        console.error("❌ Error scraping Murphy video URL:", error);
         return null;
     }
 }
