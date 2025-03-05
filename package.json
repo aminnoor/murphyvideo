@@ -1,12 +1,13 @@
 {
   "name": "murphy-video-api",
   "version": "1.0.0",
-  "description": "Fetch fresh Murphy video URLs",
+  "description": "Fetch fresh Murphy Magic video URLs for Shopify",
   "main": "index.js",
   "dependencies": {
-    "express": "^4.17.3",
     "axios": "^0.27.2",
+    "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
+    "express": "^4.17.3",
     "xml2js": "^0.4.23"
   },
   "scripts": {
