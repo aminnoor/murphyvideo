@@ -41,14 +41,22 @@ async function getFreshVideoURL(productId) {
             { headers: { "Content-Type": "text/xml", "SOAPAction": "http://webservices.murphysmagicsupplies.com/GetInventoryItems" } }
         );
 
+        console.log("Murphy API Raw Response:", response.data); // Log full response
+
         // Extract the signed video URL from XML response
         const signedVideoUrl = extractSignedVideoUrl(response.data);
+
+        if (!signedVideoUrl) {
+            console.error("❌ No video URL found in API response.");
+        }
+
         return signedVideoUrl || null;
     } catch (error) {
-        console.error("Error fetching video URL:", error);
+        console.error("❌ Error fetching video URL from Murphy API:", error);
         return null;
     }
 }
+
 
 // Function to extract the signed video URL from Murphy's API response
 function extractSignedVideoUrl(xmlResponse) {
